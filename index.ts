@@ -1,6 +1,7 @@
 import { Worker, isMainThread, parentPort, workerData } from "worker_threads";
 import { createHash } from "crypto";
 import { config } from "dotenv";
+import { readFileSync, writeFileSync, existsSync } from "fs";
 
 config();
 
@@ -20,13 +21,14 @@ let lastUpdateTime = 0;
 let lastAttempts = 0;
 let lastPassword = "";
 let lastHash = "";
+let isFound = false;
 
 const updateStats = (currentAttempts: number) => {
   const currentTime = Date.now();
-  const elapsedTime = (currentTime - startTime) / 1000; // Geçen süre saniye cinsinden
-  const elapsedSinceLastUpdate = (currentTime - lastUpdateTime) / 1000; // Son güncellemeden geçen süre saniye cinsinden
+  const elapsedTime = (currentTime - startTime) / 1000;
+  const elapsedSinceLastUpdate = (currentTime - lastUpdateTime) / 1000;
 
-  console.clear(); // Konsolu temizle
+  console.clear();
   console.log(`Geçen süre: ${elapsedTime.toFixed(2)} saniye`);
   console.log(`Toplam deneme sayısı: ${currentAttempts}`);
   console.log(
@@ -54,7 +56,7 @@ const bruteForce = (startLength: number, endLength: number) => {
 
   for (let length = startLength; length <= endLength; length++) {
     const maxLength = characters.length ** length;
-    while (totalAttempts < maxLength) {
+    while (totalAttempts < maxLength && !isFound) {
       totalAttempts++;
       const password = generateRandomPassword(length);
       lastPassword = password;
@@ -113,6 +115,16 @@ if (isMainThread) {
   const { startLength, endLength } = workerData;
   const result = bruteForce(startLength, endLength);
   if (result) {
+    isFound = true;
+    if (!existsSync("./log.txt")) {
+      writeFileSync("./log.txt", "Welcome to SHA1-Bruteforce!");
+    }
+    const logFile = readFileSync("./log.txt", "utf8");
+    writeFileSync(
+      "./log.txt",
+      logFile +
+        `\nTarget Hash: ${process.env.targetHash} | Pass: ${result.password} | Attempts: ${result.attempts}`,
+    );
     if (parentPort) {
       parentPort.postMessage(result);
     }
