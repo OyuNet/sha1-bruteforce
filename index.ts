@@ -1,14 +1,10 @@
 import { Worker, isMainThread, parentPort, workerData } from "worker_threads";
-import { createHash } from "crypto";
-import { config } from "dotenv";
 import { readFileSync, writeFileSync, existsSync } from "fs";
-
-config();
 
 const targetHash: any = process.env.targetHash;
 
 const sha1 = (text: string) => {
-  const shasum = createHash("sha1");
+  const shasum = new Bun.CryptoHasher("sha1");
   shasum.update(text);
   return shasum.digest("hex");
 };
